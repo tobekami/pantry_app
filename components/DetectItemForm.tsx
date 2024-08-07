@@ -7,6 +7,9 @@ import Button from '@mui/material/Button';
 import Webcam from 'react-webcam';
 import * as tf from '@tensorflow/tfjs';
 import * as cocossd from '@tensorflow-models/coco-ssd';
+import { collection, addDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import Image from 'next/image';
 
 interface PantryItem {
   id?: string;
@@ -102,9 +105,9 @@ const DetectItemForm: React.FC = () => {
 
   const handleUpload = async () => {
     const blob = await fetch(imageUrl).then((r) => r.blob());
-    const fileRef = storage.ref().child(`images/${name}`);
-    await fileRef.put(blob);
-    const fileUrl = await fileRef.getDownloadURL();
+    const fileRef = ref(storage, `images/${name}`);
+    await uploadBytes(fileRef, blob);
+    const fileUrl = await getDownloadURL(fileRef);
     return fileUrl;
   };
 
@@ -112,7 +115,7 @@ const DetectItemForm: React.FC = () => {
     e.preventDefault();
     if (name && quantity) {
       const fileUrl = await handleUpload();
-      await firestore.collection('pantry').add({ name, quantity, imageUrl: fileUrl });
+      await addDoc(collection(firestore, 'pantry'), { name, quantity, imageUrl: fileUrl });
       alert('Item added to pantry!');
     } else {
       alert('Please ensure a food item is detected and quantity is set');
@@ -136,7 +139,7 @@ const DetectItemForm: React.FC = () => {
       </div>
       <form onSubmit={handleSubmit}>
         <Button onClick={handleCapture}>Capture Photo</Button>
-        {imageUrl && <img src={imageUrl} alt="Captured" style={{ maxWidth: '100%' }} />}
+        {imageUrl && <Image src={imageUrl} alt="Captured" style={{ maxWidth: '100%' }} width={640} height={480}/>}
         <TextField
           label="Item Name"
           value={name}
