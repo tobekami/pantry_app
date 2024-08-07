@@ -1,95 +1,99 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
 
-export default function Home() {
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import PersonIcon from '@mui/icons-material/Person';
+import BlockIcon from '@mui/icons-material/Block';
+import { auth } from '../lib/firebaseConfig';
+import { signOut } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
+
+const Home: React.FC = () => {
+  const [user, setUser] = useState<any>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setUser(user);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push('/');
+    } catch (error) {
+      console.error("Error signing out: ", error);
+    }
+  };
+
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <div style={{
+      minHeight: '100vh',
+      backgroundImage: 'url("/path-to-your-background-image.jpg")', // Replace with your image path
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      position: 'relative',
+    }}>
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        left: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(255, 255, 255, 0.8)', // Semi-transparent white overlay
+      }} />
+      <div style={{
+        position: 'relative',
+        padding: '2rem',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+      }}>
+        <div style={{
+          position: 'absolute',
+          top: '1rem',
+          right: '1rem',
+        }}>
+          {user ? (
+            <IconButton onClick={handleLogout} color="primary">
+              <BlockIcon />
+            </IconButton>
+          ) : (
+            <Link href="/login" passHref>
+              <IconButton color="primary">
+                <PersonIcon />
+              </IconButton>
+            </Link>
+          )}
+        </div>
+        <div style={{
+          textAlign: 'center',
+          maxWidth: '600px',
+        }}>
+          <h1 style={{
+            marginBottom: '1rem',
+          }}>Pantry Tracker</h1>
+          <p style={{
+            marginBottom: '2rem',
+          }}>
+            Experience seamless management for your food inventory. Pantry Tracker helps you organize, track, and optimize your pantry with ease.
+          </p>
+          <Link href="/pantry" passHref>
+            <Button variant="contained" color="primary">
+              View Pantry
+            </Button>
+          </Link>
         </div>
       </div>
-
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+    </div>
   );
-}
+};
+
+export default Home;
