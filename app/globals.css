@@ -11,3 +11,17 @@ h1, h2, h3, h4, h5, h6 {
 button {
   font-family: 'Roboto', sans-serif;
 }
+
+/* styles/globals.css */
+
+html, body {
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+  background-image: url('/public/images/organic-food-background-hand-drawn-concept-free-vector.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed; /* To keep the background fixed during scrolling */
+  font-family: 'Your Font', sans-serif; /* Optional: set a global font */
+}

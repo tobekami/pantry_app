@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { CssBaseline, ThemeProvider } from '@mui/material';
-import { createTheme } from '@mui/material/styles';
 import ThemeProviderWrapper from "./provider";
-
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -13,11 +10,19 @@ export const metadata: Metadata = {
   description: "An AI integrated app created for seamless pantry management",
 };
 
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>
+      <body style={{
+            backgroundImage: 'url("/images/flowers-5209386.jpg")', // Replace with your image path
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            backgroundAttachment: 'fixed',
+            minHeight: '100vh',
+            margin: 0,
+            padding: 0,
+        }}>
         <ThemeProviderWrapper>
           {children}
         </ThemeProviderWrapper>
@@ -25,5 +30,3 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
-
-

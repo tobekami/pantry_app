@@ -45,7 +45,8 @@ const Home: React.FC = () => {
         right: 0,
         left: 0,
         bottom: 0,
-        backgroundColor: 'rgba(255, 255, 255, 0.8)', // Semi-transparent white overlay
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        opacity: '0.5', // Semi-transparent white overlay
       }} />
       <div style={{
         position: 'relative',
