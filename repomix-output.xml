@@ -1,0 +1,2737 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.eslintrc.json
+.gitignore
+app/dashboard/page.tsx
+app/favicon.ico
+app/fonts/GoogleSans-Variable.ttf
+app/globals.css
+app/layout.tsx
+app/login/page.tsx
+app/page.module.css
+app/page.tsx
+app/pantry/add/page.tsx
+app/pantry/detect/page.tsx
+app/pantry/page.tsx
+app/provider.tsx
+app/recipes/page.tsx
+components/DetectItemForm.tsx
+components/PantryForm.tsx
+components/PantryItemRow.tsx
+components/PantryList.tsx
+components/RecipesPage.tsx
+components/RecipeSuggestionButton.tsx
+components/RecipeSuggestions.tsx
+components/SearchBar.tsx
+firestore.rules
+lib/firebaseConfig.ts
+next.config.mjs
+package.json
+public/images/empty-crate-bg.png
+public/images/flowers-5209386.jpg
+public/images/fruits-bg.png
+public/images/hero-food.png
+public/images/images.jpeg
+public/images/login-bg.jpg
+public/images/logo.png
+public/images/organic-food-background-hand-drawn-concept-free-vector.png
+public/next.svg
+public/vercel.svg
+README.md
+tsconfig.json
+types/pantry.d.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="app/dashboard/page.tsx">
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+    Box,
+    Container,
+    Typography,
+    Paper,
+    Button,
+    Grid,
+    Chip,
+    TextField,
+    MenuItem,
+    IconButton,
+    Snackbar,
+    Alert
+} from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import SaveIcon from '@mui/icons-material/Save';
+
+// Firebase
+import { User } from 'firebase/auth';
+import { auth, firestore, doc, getDoc, setDoc } from '../../lib/firebaseConfig';
+
+const DIET_OPTIONS = ['None', 'Vegan', 'Vegetarian', 'Keto', 'Paleo', 'Pescatarian', 'Gluten-Free'];
+const GOAL_OPTIONS = ['Maintenance', 'Weight Loss', 'Muscle Gain', 'Eat More Veggies'];
+
+const DashboardPage: React.FC = () => {
+    const router = useRouter();
+    const [user, setUser] = useState<User | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Profile State
+    const [goal, setGoal] = useState('Maintenance');
+    const [diet, setDiet] = useState('None');
+    const [allergies, setAllergies] = useState<string[]>([]);
+    const [allergyInput, setAllergyInput] = useState('');
+
+    // UI State
+    const [saveStatus, setSaveStatus] = useState(false);
+
+    useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
+            if (currentUser) {
+                setUser(currentUser);
+                await fetchUserProfile(currentUser.uid);
+            } else {
+                router.push('/login');
+            }
+            setIsLoading(false);
+        });
+        return () => unsubscribe();
+    }, [router]);
+
+    const fetchUserProfile = async (uid: string) => {
+        try {
+            const userRef = doc(firestore, 'users', uid);
+            const userSnap = await getDoc(userRef);
+
+            if (userSnap.exists()) {
+                const data = userSnap.data().preferences;
+                if (data) {
+                    setGoal(data.goal || 'Maintenance');
+                    setDiet(data.diet || 'None');
+                    setAllergies(data.allergies || []);
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching profile:", error);
+        }
+    };
+
+    const handleSaveProfile = async () => {
+        if (!user) return;
+        try {
+            const userRef = doc(firestore, 'users', user.uid);
+            await setDoc(userRef, {
+                preferences: { goal, diet, allergies }
+            }, { merge: true });
+
+            setSaveStatus(true);
+        } catch (error) {
+            console.error("Error saving profile:", error);
+        }
+    };
+
+    const handleAddAllergy = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && allergyInput.trim() !== '') {
+            e.preventDefault();
+            if (!allergies.includes(allergyInput.trim())) {
+                setAllergies([...allergies, allergyInput.trim()]);
+            }
+            setAllergyInput('');
+        }
+    };
+
+    const handleRemoveAllergy = (allergyToRemove: string) => {
+        setAllergies(allergies.filter(a => a !== allergyToRemove));
+    };
+
+    if (isLoading) return null;
+
+    return (
+        <Box sx={{ minHeight: '100vh', bgcolor: '#F5FAFF', pb: 8 }}>
+
+            {/* Frosted Glass Header */}
+            <Box sx={{ position: 'sticky', top: 0, zIndex: 50, bgcolor: 'rgba(245, 250, 255, 0.8)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+                <Container maxWidth="md" sx={{ py: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <IconButton onClick={() => router.push('/pantry')} sx={{ color: '#486730', bgcolor: '#e9f5ff' }}>
+                        <ArrowBackIcon />
+                    </IconButton>
+                    <Box>
+                        <Typography variant="h5" fontWeight={800} sx={{ color: '#486730' }}>
+                            Kitchen Dashboard
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#5f5e59' }}>
+                            Manage your dietary guard and preferences.
+                        </Typography>
+                    </Box>
+                </Container>
+            </Box>
+
+            <Container maxWidth="md" sx={{ pt: 6 }}>
+                <Paper elevation={0} sx={{ p: 4, borderRadius: '16px', border: '1px solid #e0f0fd' }}>
+                    <Typography variant="h6" fontWeight={700} sx={{ color: '#0e1d26', mb: 4 }}>
+                        Dietary Preferences
+                    </Typography>
+
+                    <Grid container spacing={4}>
+                        {/* Primary Goal */}
+                        <Grid item xs={12} md={6}>
+                            <Typography variant="subtitle2" fontWeight={700} sx={{ color: '#74796c', mb: 1, textTransform: 'uppercase', letterSpacing: 1 }}>
+                                Primary Goal
+                            </Typography>
+                            <TextField
+                                select
+                                fullWidth
+                                value={goal}
+                                onChange={(e) => setGoal(e.target.value)}
+                                variant="outlined"
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                            >
+                                {GOAL_OPTIONS.map((option) => (
+                                    <MenuItem key={option} value={option}>{option}</MenuItem>
+                                ))}
+                            </TextField>
+                        </Grid>
+
+                        {/* Standard Diet */}
+                        <Grid item xs={12}>
+                            <Typography variant="subtitle2" fontWeight={700} sx={{ color: '#74796c', mb: 2, textTransform: 'uppercase', letterSpacing: 1 }}>
+                                Followed Diet
+                            </Typography>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                {DIET_OPTIONS.map((option) => (
+                                    <Chip
+                                        key={option}
+                                        label={option}
+                                        onClick={() => setDiet(option)}
+                                        sx={{
+                                            px: 1, py: 2.5, borderRadius: '12px', fontWeight: 600, fontSize: '0.9rem',
+                                            bgcolor: diet === option ? '#486730' : '#e9f5ff',
+                                            color: diet === option ? '#ffffff' : '#486730',
+                                            '&:hover': { bgcolor: diet === option ? '#314e1b' : '#daeaf7' }
+                                        }}
+                                    />
+                                ))}
+                            </Box>
+                        </Grid>
+
+                        {/* Allergies & Restrictions */}
+                        <Grid item xs={12}>
+                            <Typography variant="subtitle2" fontWeight={700} sx={{ color: '#74796c', mb: 1, textTransform: 'uppercase', letterSpacing: 1 }}>
+                                Allergies & Custom Restrictions
+                            </Typography>
+                            <TextField
+                                fullWidth
+                                placeholder="Type an ingredient and press Enter (e.g., Peanuts, Cilantro)"
+                                value={allergyInput}
+                                onChange={(e) => setAllergyInput(e.target.value)}
+                                onKeyDown={handleAddAllergy}
+                                sx={{ mb: 2, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                            />
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                {allergies.map((allergy) => (
+                                    <Chip
+                                        key={allergy}
+                                        label={allergy}
+                                        onDelete={() => handleRemoveAllergy(allergy)}
+                                        sx={{ bgcolor: '#ffdad6', color: '#93000a', fontWeight: 600, borderRadius: '8px' }}
+                                    />
+                                ))}
+                                {allergies.length === 0 && (
+                                    <Typography variant="body2" sx={{ color: '#a19f99', fontStyle: 'italic' }}>
+                                        No restrictions added.
+                                    </Typography>
+                                )}
+                            </Box>
+                        </Grid>
+                    </Grid>
+
+                    <Box sx={{ mt: 6, display: 'flex', justifyContent: 'flex-end' }}>
+                        <Button
+                            variant="contained"
+                            startIcon={<SaveIcon />}
+                            onClick={handleSaveProfile}
+                            sx={{ px: 4, py: 1.5, borderRadius: '30px', fontWeight: 700, bgcolor: '#486730', '&:hover': { bgcolor: '#314e1b' } }}
+                        >
+                            Save Preferences
+                        </Button>
+                    </Box>
+                </Paper>
+            </Container>
+
+            {/* Success Notification */}
+            <Snackbar open={saveStatus} autoHideDuration={3000} onClose={() => setSaveStatus(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+                <Alert severity="success" variant="filled" sx={{ width: '100%', borderRadius: '12px', bgcolor: '#486730' }}>
+                    Dietary profile saved successfully!
+                </Alert>
+            </Snackbar>
+        </Box>
+    );
+};
+
+export default DashboardPage;
+</file>
+
+<file path="components/PantryItemRow.tsx">
+// components/PantryItemRow.tsx
+"use client";
+
+import React from 'react';
+import { Box, Typography, IconButton, LinearProgress, Avatar } from '@mui/material';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
+import { PantryItem } from '@/types/pantry';
+
+interface PantryItemRowProps {
+    item: PantryItem;
+    onUpdate: (item: PantryItem) => void;
+    onDelete: (id: string) => void;
+}
+
+// Helper to get image from Spoonacular
+const getImageUrl = (name: string) => {
+    const formattedName = name.toLowerCase().replace(/\s+/g, '-');
+    return `https://spoonacular.com/cdn/ingredients_100x100/${formattedName}.jpg`;
+};
+
+// Replace your old getExpiryStatus with this:
+const getShelfLifeStatus = (dateAdded?: string) => {
+    if (!dateAdded) return { health: 100, color: 'primary.main', label: 'Fresh' };
+
+    const addedTime = new Date(dateAdded).getTime();
+    const now = new Date().getTime();
+
+    // Calculate difference in days
+    const diffInDays = Math.floor((now - addedTime) / (1000 * 3600 * 24));
+
+    // Assuming a generic 14-day freshness window for the progress bar
+    let health = Math.max(0, 100 - (diffInDays * 7));
+    let color = 'primary.main';
+    let label = `${diffInDays} Days Old`;
+
+    if (diffInDays >= 7 && diffInDays < 10) {
+        color = 'warning.main';
+        label = `Getting Old (${diffInDays}d)`;
+    } else if (diffInDays >= 10) {
+        color = 'error.main';
+        label = `Check Quality (${diffInDays}d)`;
+    }
+
+    return { health, color, label };
+};
+
+const PantryItemRow: React.FC<PantryItemRowProps> = ({ item, onUpdate, onDelete }) => {
+    const { health, color, label } = getShelfLifeStatus(item.dateAdded);
+
+    const handleIncrement = () => onUpdate({ ...item, quantity: item.quantity + 1 });
+    const handleDecrement = () => onUpdate({ ...item, quantity: Math.max(0, item.quantity - 1) });
+
+    return (
+        <Box sx={{
+            display: 'flex', alignItems: 'center', p: 2,
+            transition: 'background-color 0.2s',
+            '&:hover': { bgcolor: '#F5FAFF' },
+            borderBottom: '1px solid #F0F0F0'
+        }}>
+            {/* 1. Image & Name Column */}
+            <Box sx={{ display: 'flex', alignItems: 'center', flex: 2, gap: 2 }}>
+                <Avatar
+                    variant="rounded"
+                    // Directly use the cached URL from Firestore
+                    src={item.imageUrl || undefined}
+                    alt={item.name}
+                    sx={{
+                        width: 56, height: 56,
+                        bgcolor: '#E0F0FD', color: '#486730',
+                        fontWeight: 800, fontSize: '1.5rem'
+                    }}
+                >
+                    {item.name.charAt(0).toUpperCase()}
+                </Avatar>
+
+                <Typography variant="subtitle1" fontWeight={700} sx={{ color: '#0E1D26' }}>
+                    {item.name}
+                </Typography>
+            </Box>
+
+            {/* 2. Shelf Life Column (Flex: 1.5) - Hidden on very small screens */}
+            <Box sx={{ flex: 1.5, px: 2, display: { xs: 'none', sm: 'block' } }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography sx={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', color }}>
+                        {label}
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', color: '#74796C' }}>
+                        {health}%
+                    </Typography>
+                </Box>
+                <LinearProgress
+                    variant="determinate"
+                    value={health}
+                    sx={{
+                        height: 6,
+                        borderRadius: 3,
+                        bgcolor: '#E0F0FD',
+                        '& .MuiLinearProgress-bar': { bgcolor: color, borderRadius: 3 }
+                    }}
+                />
+            </Box>
+
+            {/* 3. Quantity Column (Flex: 1) */}
+            <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: '#E9F5FF', borderRadius: '20px', px: 1, py: 0.5 }}>
+                    <IconButton onClick={handleDecrement} size="small" sx={{ color: '#486730', p: 0.5 }}>
+                        <RemoveIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                    <Typography sx={{ mx: 1.5, minWidth: '16px', textAlign: 'center', fontWeight: 800 }}>
+                        {item.quantity}
+                    </Typography>
+                    <IconButton onClick={handleIncrement} size="small" sx={{ color: '#486730', p: 0.5 }}>
+                        <AddIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                </Box>
+            </Box>
+
+            {/* 4. Actions Column */}
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', ml: 2 }}>
+                <IconButton onClick={() => onDelete(item.id!)} size="small" sx={{
+                    color: '#74796C',
+                    '&:hover': { color: '#BA1A1A', bgcolor: '#FFDAD6' }
+                }}>
+                    <DeleteOutlineIcon />
+                </IconButton>
+            </Box>
+
+        </Box>
+    );
+};
+
+export default PantryItemRow;
+</file>
+
+<file path="firestore.rules">
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /pantry/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+</file>
+
+<file path=".eslintrc.json">
+{
+  "extends": "next/core-web-vitals"
+}
+</file>
+
+<file path=".gitignore">
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+</file>
+
+<file path="app/page.module.css">
+.main {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6rem;
+  min-height: 100vh;
+}
+
+.description {
+  display: inherit;
+  justify-content: inherit;
+  align-items: inherit;
+  font-size: 0.85rem;
+  max-width: var(--max-width);
+  width: 100%;
+  z-index: 2;
+  font-family: var(--font-mono);
+}
+
+.description a {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.description p {
+  position: relative;
+  margin: 0;
+  padding: 1rem;
+  background-color: rgba(var(--callout-rgb), 0.5);
+  border: 1px solid rgba(var(--callout-border-rgb), 0.3);
+  border-radius: var(--border-radius);
+}
+
+.code {
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(25%, auto));
+  max-width: 100%;
+  width: var(--max-width);
+}
+
+.card {
+  padding: 1rem 1.2rem;
+  border-radius: var(--border-radius);
+  background: rgba(var(--card-rgb), 0);
+  border: 1px solid rgba(var(--card-border-rgb), 0);
+  transition: background 200ms, border 200ms;
+}
+
+.card span {
+  display: inline-block;
+  transition: transform 200ms;
+}
+
+.card h2 {
+  font-weight: 600;
+  margin-bottom: 0.7rem;
+}
+
+.card p {
+  margin: 0;
+  opacity: 0.6;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  max-width: 30ch;
+  text-wrap: balance;
+}
+
+.center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  padding: 4rem 0;
+}
+
+.center::before {
+  background: var(--secondary-glow);
+  border-radius: 50%;
+  width: 480px;
+  height: 360px;
+  margin-left: -400px;
+}
+
+.center::after {
+  background: var(--primary-glow);
+  width: 240px;
+  height: 180px;
+  z-index: -1;
+}
+
+.center::before,
+.center::after {
+  content: "";
+  left: 50%;
+  position: absolute;
+  filter: blur(45px);
+  transform: translateZ(0);
+}
+
+.logo {
+  position: relative;
+}
+/* Enable hover only on non-touch devices */
+@media (hover: hover) and (pointer: fine) {
+  .card:hover {
+    background: rgba(var(--card-rgb), 0.1);
+    border: 1px solid rgba(var(--card-border-rgb), 0.15);
+  }
+
+  .card:hover span {
+    transform: translateX(4px);
+  }
+}
+
+@media (prefers-reduced-motion) {
+  .card:hover span {
+    transform: none;
+  }
+}
+
+/* Mobile */
+@media (max-width: 700px) {
+  .content {
+    padding: 4rem;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+    margin-bottom: 120px;
+    max-width: 320px;
+    text-align: center;
+  }
+
+  .card {
+    padding: 1rem 2.5rem;
+  }
+
+  .card h2 {
+    margin-bottom: 0.5rem;
+  }
+
+  .center {
+    padding: 8rem 0 6rem;
+  }
+
+  .center::before {
+    transform: none;
+    height: 300px;
+  }
+
+  .description {
+    font-size: 0.8rem;
+  }
+
+  .description a {
+    padding: 1rem;
+  }
+
+  .description p,
+  .description div {
+    display: flex;
+    justify-content: center;
+    position: fixed;
+    width: 100%;
+  }
+
+  .description p {
+    align-items: center;
+    inset: 0 0 auto;
+    padding: 2rem 1rem 1.4rem;
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid rgba(var(--callout-border-rgb), 0.25);
+    background: linear-gradient(
+      to bottom,
+      rgba(var(--background-start-rgb), 1),
+      rgba(var(--callout-rgb), 0.5)
+    );
+    background-clip: padding-box;
+    backdrop-filter: blur(24px);
+  }
+
+  .description div {
+    align-items: flex-end;
+    pointer-events: none;
+    inset: auto 0 0;
+    padding: 2rem;
+    height: 200px;
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      rgb(var(--background-end-rgb)) 40%
+    );
+    z-index: 1;
+  }
+}
+
+/* Tablet and Smaller Desktop */
+@media (min-width: 701px) and (max-width: 1120px) {
+  .grid {
+    grid-template-columns: repeat(2, 50%);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .vercelLogo {
+    filter: invert(1);
+  }
+
+  .logo {
+    filter: invert(1) drop-shadow(0 0 0.3rem #ffffff70);
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+</file>
+
+<file path="app/pantry/add/page.tsx">
+// app/pantry/page.tsx
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import PantryForm from '../../../components/PantryForm';
+import PantryList from '../../../components/PantryList';
+import { User } from 'firebase/auth';
+import { auth, collection, deleteDoc, doc, firestore, getDocs, query, where } from '../../../lib/firebaseConfig';
+import { PantryItem } from '@/types/pantry';
+
+const PantryPage: React.FC = () => {
+  const [items, setItems] = useState<PantryItem[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      console.log("Auth state changed:", user);
+      setUser(user);
+      if (user) {
+        fetchUserItems(user.uid);
+      } else {
+        fetchGuestItems();
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const fetchUserItems = async (userId: string) => {
+    const pantryQuery = query(collection(firestore, 'pantry'), where('userId', '==', userId));
+    const querySnapshot = await getDocs(pantryQuery);
+    setItems(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PantryItem)));
+  };
+
+  const fetchGuestItems = () => {
+    const storedItems = localStorage.getItem('guestPantryItems');
+    if (storedItems) {
+      console.log(storedItems)
+      setItems(JSON.parse(storedItems));
+    } else {
+      console.log("no stored items")
+      setItems([]);
+    }
+  };
+
+  const handleAddOrUpdateItem = (newItem: PantryItem) => {
+    const updatedItems = newItem.id
+      ? items.map(item => item.id === newItem.id ? newItem : item)
+      : [...items, newItem];
+
+    setItems(updatedItems);
+
+    if (!user) {
+      localStorage.setItem('guestPantryItems', JSON.stringify(updatedItems));
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (user) {
+      await deleteDoc(doc(firestore, 'pantry', id));
+    }
+    const updatedItems = items.filter(item => item.id !== id);
+    setItems(updatedItems);
+    if (!user) {
+      console.log(updatedItems)
+      localStorage.setItem('guestPantryItems', JSON.stringify(updatedItems));
+    }
+  };
+
+  return (
+    <div>
+      <h1>Pantry</h1>
+      <PantryForm onSubmit={handleAddOrUpdateItem} user={user} />
+      <PantryList items={items} onDelete={handleDelete} onUpdate={handleAddOrUpdateItem} user={user} />
+    </div>
+  );
+};
+
+export default PantryPage;
+</file>
+
+<file path="app/pantry/detect/page.tsx">
+"use client";
+
+import React from 'react';
+import { Box, Container, Typography, Paper } from '@mui/material';
+import DetectItemForm from '../../../components/DetectItemForm';
+
+const DetectPage: React.FC = () => {
+  return (
+    <Container maxWidth="md">
+      <Box sx={{ my: 4 }}>
+        <Typography variant="h3" component="h1" gutterBottom>
+          Detect and Add Items
+        </Typography>
+        <Paper elevation={3} sx={{ p: 3 }}>
+          <Typography variant="h5" component="h2" gutterBottom>
+            Use your camera to detect and add items to your pantry
+          </Typography>
+          <Typography variant="body1" paragraph>
+            Point your camera at a food item and our AI will try to detect it. Once detected, you can add it to your pantry with just a few clicks.
+          </Typography>
+          <DetectItemForm />
+        </Paper>
+      </Box>
+    </Container>
+  );
+};
+
+export default DetectPage;
+</file>
+
+<file path="app/pantry/page.tsx">
+// app/pantry/page.tsx
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  Box,
+  Container,
+  Typography,
+  IconButton,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  Avatar,
+  Paper,
+  Button,
+  Grid,
+  InputBase
+} from '@mui/material';
+
+// Icons
+import CameraAltIcon from '@mui/icons-material/CameraAlt';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import LogoutIcon from '@mui/icons-material/Logout';
+import SearchIcon from '@mui/icons-material/Search';
+import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
+import Badge from '@mui/material/Badge';
+
+// Firebase & Types
+import { User, signOut } from 'firebase/auth';
+import { auth, collection, deleteDoc, doc, firestore, onSnapshot, query, updateDoc, addDoc, where, getDocs } from '../../lib/firebaseConfig';
+import { PantryItem } from '@/types/pantry';
+
+// Components
+import PantryList from '../../components/PantryList';
+import PantryForm from '../../components/PantryForm';
+
+const PantryPage: React.FC = () => {
+  const [items, setItems] = useState<PantryItem[]>([]);
+  const [filteredItems, setFilteredItems] = useState<PantryItem[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [notifications, setNotifications] = useState<string[]>([]);
+  const [notificationAnchorEl, setNotificationAnchorEl] = useState<null | HTMLElement>(null);
+  const router = useRouter();
+
+  // Helper function to fetch a thumbnail from Unsplash
+  const fetchUnsplashImage = async (itemName: string): Promise<string> => {
+    try {
+      // Append context to improve search accuracy for obscure items
+      const query = encodeURIComponent(`${itemName} food ingredient`);
+      const apiKey = process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY;
+
+      // Attempt the fetch call
+      const response = await fetch(
+        `https://api.unsplash.com/search/photos?query=${query}&client_id=${apiKey}&per_page=1`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        // Return the thumb URL if a result exists, otherwise return an empty string
+        if (data.results && data.results.length > 0) {
+          return data.results[0].urls.thumb;
+        }
+      }
+      return '';
+    } catch (error) {
+      console.error("Unsplash API Error:", error);
+      return ''; // Fail gracefully so the app doesn't crash
+    }
+  };
+
+  // Auth & Data Fetching
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        setUser(user);
+        const q = query(collection(firestore, 'pantry'), where('userId', '==', user.uid));
+        const unsubscribeSnapshot = onSnapshot(q, (querySnapshot) => {
+          const fetchedItems: PantryItem[] = [];
+          querySnapshot.forEach((doc) => {
+            fetchedItems.push({ id: doc.id, ...doc.data() } as PantryItem);
+          });
+          setItems(fetchedItems);
+          setFilteredItems(fetchedItems);
+        });
+        return () => unsubscribeSnapshot();
+      } else {
+        router.push('/login');
+      }
+    });
+    return () => unsubscribe();
+  }, [router]);
+
+  useEffect(() => {
+    const alerts: string[] = [];
+
+    items.forEach(item => {
+      // Check for low stock
+      if (item.quantity < 3) {
+        alerts.push(`${item.name} is running low (${item.quantity} left).`);
+      }
+
+      // Check for old items (e.g., older than 7 days)
+      if (item.dateAdded) {
+        const addedTime = new Date(item.dateAdded).getTime();
+        const diffInDays = Math.floor((new Date().getTime() - addedTime) / (1000 * 3600 * 24));
+        if (diffInDays >= 7) {
+          alerts.push(`${item.name} has been sitting for ${diffInDays} days.`);
+        }
+      }
+    });
+
+    setNotifications(alerts);
+  }, [items]);
+
+
+  // Triggers when the bell icon is clicked
+  const handleNotificationMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setNotificationAnchorEl(event.currentTarget);
+  };
+
+  // Triggers when clicking outside the menu or selecting an item
+  const handleNotificationMenuClose = () => {
+    setNotificationAnchorEl(null);
+  };
+
+  const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => setAnchorEl(event.currentTarget);
+  const handleProfileMenuClose = () => setAnchorEl(null);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push('/login');
+  };
+
+  const handleAddOrUpdateItem = async (newItem: PantryItem) => {
+    if (!user) return;
+
+    try {
+      if (newItem.id) {
+        // It's an existing item being updated (e.g., quantity change)
+        const itemRef = doc(firestore, 'pantry', newItem.id);
+        const { id, ...updateData } = newItem;
+        await updateDoc(itemRef, updateData);
+
+      } else {
+        // It's a completely new item
+        // 1. Check if we already have this item in the DB
+        const q = query(
+          collection(firestore, 'pantry'),
+          where('userId', '==', user.uid),
+          where('name', '==', newItem.name)
+        );
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+          // Item exists, just increment the quantity
+          const existingDoc = querySnapshot.docs[0];
+          const newQuantity = (existingDoc.data().quantity || 0) + newItem.quantity;
+          await updateDoc(doc(firestore, 'pantry', existingDoc.id), { quantity: newQuantity });
+
+        } else {
+          // Item does not exist, we need to create it
+          // 2. Resolve the image URL before saving
+          let finalImageUrl = newItem.imageUrl || '';
+
+          // If the camera didn't provide an image, fetch one from Unsplash
+          if (!finalImageUrl) {
+            finalImageUrl = await fetchUnsplashImage(newItem.name);
+          }
+
+          // 3. Prepare the final data payload
+          const { id, ...addData } = newItem;
+          addData.dateAdded = new Date().toISOString(); // From our previous shelf-life setup
+          addData.imageUrl = finalImageUrl; // Attach the permanently cached URL
+
+          // 4. Save to Firestore
+          await addDoc(collection(firestore, 'pantry'), addData);
+        }
+      }
+    } catch (error) {
+      console.error("Error saving item:", error);
+    }
+  };
+
+  const handleDeleteItem = async (id: string) => {
+    if (user) await deleteDoc(doc(firestore, 'pantry', id));
+  };
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const term = e.target.value.toLowerCase();
+    setSearchTerm(term);
+    setFilteredItems(items.filter(item => item.name.toLowerCase().includes(term)));
+  };
+
+  return (
+    <Box
+      sx={{
+        minHeight: '100vh',
+        // Dynamically set the background image based on inventory state
+        backgroundImage: filteredItems.length === 0
+          ? 'url("/images/empty-crate-bg.png")'
+          : 'url("/images/fruits-bg.png")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundAttachment: 'fixed', // Keeps the image stable while scrolling
+        position: 'relative',
+        overflowX: 'hidden',
+        // We add a subtle overlay to ensure your UI elements remain legible 
+        // against the potentially busy fruit background
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: filteredItems.length === 0
+            ? 'rgba(245, 250, 255, 0.7)' // Lighter overlay for the empty crate
+            : 'rgba(255, 255, 255, 0.85)', // Stronger overlay for the fruits
+          zIndex: -1,
+        }
+      }}
+    >
+
+      {/* Organic Background Blobs */}
+      <Box sx={{ position: 'fixed', top: '-10%', right: '-10%', width: 500, height: 500, bgcolor: '#87a96b', filter: 'blur(60px)', opacity: 0.15, borderRadius: '50%', zIndex: 0 }} />
+      <Box sx={{ position: 'fixed', bottom: '-10%', left: '-10%', width: 400, height: 400, bgcolor: '#d0e5d2', filter: 'blur(60px)', opacity: 0.15, borderRadius: '50%', zIndex: 0 }} />
+
+      {/* 1. Frosted Glass Header */}
+      <Box sx={{
+        position: 'sticky', top: 0, zIndex: 50,
+        bgcolor: 'rgba(245, 250, 255, 0.8)',
+        backdropFilter: 'blur(16px)',
+        borderBottom: '1px solid rgba(0,0,0,0.05)'
+      }}>
+        <Container maxWidth="lg" sx={{ py: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+
+          <Box>
+            <Typography variant="h4" fontWeight={800} sx={{ color: '#486730', letterSpacing: '-0.5px' }}>
+              Pantry Dashboard
+            </Typography>
+            <Typography variant="body2" fontWeight={500} sx={{ color: '#5f5e59' }}>
+              Curating your kitchen's natural ecosystem.
+            </Typography>
+          </Box>
+
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {/* Notifications Trigger */}
+            <Box>
+              <IconButton
+                onClick={handleNotificationMenuOpen}
+                sx={{ color: '#5f5e59', '&:hover': { bgcolor: 'rgba(135, 169, 107, 0.1)' } }}
+              >
+                <Badge badgeContent={notifications.length} color="error">
+                  <NotificationsNoneIcon />
+                </Badge>
+              </IconButton>
+
+              {/* Notifications Dropdown Menu */}
+              <Menu
+                anchorEl={notificationAnchorEl}
+                open={Boolean(notificationAnchorEl)}
+                onClose={handleNotificationMenuClose}
+                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                PaperProps={{
+                  elevation: 0,
+                  sx: {
+                    overflow: 'visible',
+                    filter: 'drop-shadow(0px 8px 24px rgba(0,0,0,0.08))', // Adds depth
+                    mt: 1.5,
+                    minWidth: 300,
+                    maxWidth: 360,
+                    borderRadius: '16px',
+                    border: '1px solid rgba(135, 169, 107, 0.1)',
+                    bgcolor: '#ffffff'
+                  }
+                }}
+              >
+                {/* Handle Empty State */}
+                {notifications.length === 0 ? (
+                  <MenuItem sx={{ py: 3, justifyContent: 'center', pointerEvents: 'none' }}>
+                    <Typography variant="body2" sx={{ color: '#74796c', fontWeight: 600 }}>
+                      Your pantry is fully stocked and fresh!
+                    </Typography>
+                  </MenuItem>
+                ) : (
+                  /* Map through active notifications */
+                  notifications.map((note, index) => (
+                    <MenuItem
+                      key={index}
+                      onClick={handleNotificationMenuClose}
+                      sx={{
+                        py: 2,
+                        px: 3,
+                        borderBottom: index !== notifications.length - 1 ? '1px solid #f5faff' : 'none',
+                        whiteSpace: 'normal', // Allows text to wrap instead of truncating
+                        transition: 'background-color 0.2s',
+                        '&:hover': { bgcolor: '#fbfdfc' }
+                      }}
+                    >
+                      <Typography variant="body2" sx={{ color: '#0e1d26', fontWeight: 500, lineHeight: 1.5 }}>
+                        {note}
+                      </Typography>
+                    </MenuItem>
+                  ))
+                )}
+              </Menu>
+            </Box>
+            <Box>
+              <IconButton onClick={handleProfileMenuOpen} size="small" sx={{ p: 0, border: '2px solid rgba(135, 169, 107, 0.2)' }}>
+                <Avatar sx={{ width: 40, height: 40, bgcolor: '#486730', color: 'white' }}>
+                  {user?.email?.charAt(0).toUpperCase()}
+                </Avatar>
+              </IconButton>
+              <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleProfileMenuClose}
+                onClick={handleProfileMenuClose}
+                PaperProps={{ elevation: 0, sx: { overflow: 'visible', filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.1))', mt: 1.5 } }}
+                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+              >
+                <MenuItem onClick={() => router.push('/dashboard')}>
+                  <ListItemIcon><DashboardIcon fontSize="small" /></ListItemIcon>
+                  <ListItemText>Dashboard</ListItemText>
+                </MenuItem>
+                <MenuItem onClick={handleLogout}>
+                  <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
+                  <ListItemText>Logout</ListItemText>
+                </MenuItem>
+              </Menu>
+            </Box>
+          </Box>
+        </Container>
+      </Box>
+
+      {/* Main Content Area */}
+      <Container maxWidth="lg" sx={{ pt: 6, pb: 12, position: 'relative', zIndex: 1 }}>
+
+        {/* 2. Search & Actions Bar */}
+        <Grid container spacing={1} alignItems="center" sx={{ mb: 6, flexWrap: 'nowrap' }}>
+          {/* Search Input - Takes up remaining space */}
+          <Grid item xs sx={{ flexGrow: 1, minWidth: 0 }}>
+            <Box sx={{ position: 'relative', width: '100%' }}>
+              <SearchIcon sx={{ position: 'absolute', zIndex: 10, left: 16, top: '50%', transform: 'translateY(-50%)', color: '#74796c' }} />
+              <InputBase
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={handleSearch}
+                fullWidth
+                sx={{
+                  width: '100%',
+                  pl: 6, pr: 2, py: 1.5,
+                  bgcolor: '#daeaf7', borderRadius: '30px', color: '#0e1d26',
+                  transition: 'all 0.2s',
+                  '&.Mui-focused': { bgcolor: '#ffffff', boxShadow: '0 0 0 2px #486730' }
+                }}
+              />
+            </Box>
+          </Grid>
+
+          {/* Action Buttons - Stays inline */}
+          <Grid item sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+            <Button
+              variant="contained"
+              onClick={() => router.push('/recipes')}
+              sx={{
+                borderRadius: '30px',
+                // Logic: On mobile (xs), make it a circle/square. On desktop (md), restore padding.
+                minWidth: { xs: '48px', md: 'auto' },
+                px: { xs: 0, md: 4 },
+                py: 1.5,
+                fontWeight: 700,
+                background: 'linear-gradient(to right, #486730, #87a96b)',
+                color: '#ffffff',
+                '&:hover': { opacity: 0.9 }
+              }}
+            >
+              <AutoAwesomeIcon sx={{ mr: { xs: 0, md: 1 } }} />
+              {/* This Box hides the text on mobile and shows it starting at the 'md' breakpoint */}
+              <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>
+                Suggest Recipes
+              </Box>
+            </Button>
+
+            <IconButton
+              onClick={() => router.push('/pantry/detect')}
+              sx={{
+                bgcolor: '#e9f5ff', color: '#486730', p: 1.5,
+                borderRadius: '30px', // Matches the theme of the other buttons
+                '&:hover': { bgcolor: '#daeaf7' }
+              }}
+            >
+              <CameraAltIcon />
+            </IconButton>
+          </Grid>
+        </Grid>
+
+        {/* 3. The Editorial Table */}
+        <Paper elevation={0} sx={{ borderRadius: '16px', bgcolor: '#ffffff', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', overflow: 'hidden' }}>
+
+          {/* Add Item Row (using the same styling container) */}
+          <Box sx={{ p: 2, borderBottom: '1px solid #e9f5ff', bgcolor: '#fbfdfc' }}>
+            <PantryForm onSubmit={handleAddOrUpdateItem} user={user} isNewItem />
+          </Box>
+
+          <PantryList
+            items={filteredItems}
+            onDelete={handleDeleteItem}
+            onUpdate={handleAddOrUpdateItem}
+            user={user}
+          />
+        </Paper>
+
+      </Container>
+    </Box>
+  );
+};
+
+export default PantryPage;
+</file>
+
+<file path="app/provider.tsx">
+// app/provider.tsx
+"use client";
+
+import React from 'react';
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import { createTheme } from '@mui/material/styles';
+
+const theme = createTheme({
+  typography: {
+    // This connects MUI to the Next.js font loader
+    fontFamily: 'var(--font-google-sans), "Roboto", "Helvetica", "Arial", sans-serif',
+    h1: { fontWeight: 700 }, // Bold
+    h2: { fontWeight: 700 },
+    h3: { fontWeight: 600 }, // Semi-Bold
+    h4: { fontWeight: 600 },
+    h5: { fontWeight: 500 }, // Medium
+    h6: { fontWeight: 500 },
+    button: { textTransform: 'none', fontWeight: 600 },
+  },
+  palette: {
+    primary: {
+      main: '#6A9C78', // Sage Green
+      contrastText: '#FFFFFF',
+    },
+    secondary: {
+      main: '#F2F5F3', // Very light sage for backgrounds/cards
+      contrastText: '#2D3436',
+    },
+    background: {
+      default: '#FFFFFF',
+      paper: '#F9FAF9', // Slightly off-white for contrast
+    },
+    text: {
+      primary: '#2D3436', // Soft Black
+      secondary: '#636E72',
+    },
+  },
+  shape: { borderRadius: 12 },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: { borderRadius: '8px', boxShadow: 'none' },
+        containedPrimary: { '&:hover': { backgroundColor: '#568061', boxShadow: 'none' } },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: { boxShadow: 'none', border: '1px solid #E0E0E0' },
+      },
+    },
+  },
+});
+
+export default function ThemeProviderWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      {children}
+    </ThemeProvider>
+  );
+}
+</file>
+
+<file path="app/recipes/page.tsx">
+// pages/recipes/index.tsx
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { User } from 'firebase/auth';
+import { auth, collection, firestore, getDocs, query, where } from '../../lib/firebaseConfig';
+import { PantryItem } from '@/types/pantry';
+import RecipeSuggestions from '../../components/RecipeSuggestions';
+import { useRouter } from 'next/navigation';
+
+const RecipesPage: React.FC = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const [ingredients, setIngredients] = useState<string[]>([]);
+  const router = useRouter();
+
+  useEffect(() => {
+    // Check user authentication status
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        setUser(user);
+        fetchUserItems(user.uid);
+      } else {
+        // Redirect to login if user is not authenticated
+        router.push('/login');
+      }
+    });
+
+    // Cleanup function to unsubscribe from the auth listener
+    return () => unsubscribe();
+  }, [router]);
+
+  // Fetch user's pantry items
+  const fetchUserItems = async (userId: string) => {
+    const pantryQuery = query(collection(firestore, 'pantry'), where('userId', '==', userId));
+    const querySnapshot = await getDocs(pantryQuery);
+    const fetchedItems = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PantryItem));
+    
+    // Extract ingredient names from fetched items
+    setIngredients(fetchedItems.map(item => item.name));
+  };
+
+  // Don't render anything if user is not authenticated
+  if (!user) return null;
+
+  return (
+    <div>
+      {/* Pass ingredients to RecipeSuggestions component */}
+      <RecipeSuggestions ingredients={ingredients} />
+    </div>
+  );
+};
+
+export default RecipesPage;
+</file>
+
+<file path="components/PantryForm.tsx">
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { firestore, collection, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs } from '../lib/firebaseConfig';
+import TextField from '@mui/material/TextField';
+import { User } from 'firebase/auth';
+import { Box, IconButton, Typography } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
+import CheckIcon from '@mui/icons-material/Check';
+import { PantryItem } from '@/types/pantry';
+
+interface PantryFormProps {
+  item?: PantryItem;
+  onSubmit: (item: PantryItem) => void;
+  onDelete?: (id: string) => void;
+  user: User | null;
+  isNewItem?: boolean;
+}
+
+const PantryForm: React.FC<PantryFormProps> = ({ item, onSubmit, onDelete, user, isNewItem = false }) => {
+  const [name, setName] = useState(item ? item.name : '');
+  const [quantity, setQuantity] = useState(item ? item.quantity : 1);
+
+  useEffect(() => {
+    if (item) {
+      setName(item.name);
+      setQuantity(item.quantity);
+    }
+  }, [item]);
+
+  const handleSubmit = () => {
+    if (!user || !name) return;
+
+    // 1. Force Quantity to be a Number
+    const finalQuantity = Number(quantity);
+
+    // 2. Capitalize Name
+    const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1);
+
+    const newItem: PantryItem = {
+      ...item, // Keep ID if it exists
+      name: capitalizedName,
+      quantity: finalQuantity,
+      userId: user.uid
+    };
+
+    // 3. Just tell the parent to save. Don't save to Firebase here.
+    onSubmit(newItem);
+
+    if (isNewItem) {
+      setName('');
+      setQuantity(1);
+    }
+  };
+
+  const handleIncrement = () => {
+    // Optimistic UI: Update local state immediately
+    const newQ = Number(quantity) + 1;
+    setQuantity(newQ);
+
+    // If it's an existing item, trigger save immediately
+    if (!isNewItem && item) {
+      onSubmit({ ...item, quantity: newQ });
+    }
+  };
+
+  const handleDecrement = () => {
+    const newQ = Math.max(0, Number(quantity) - 1);
+    setQuantity(newQ);
+
+    if (!isNewItem && item) {
+      onSubmit({ ...item, quantity: newQ });
+    }
+  };
+
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+      <TextField
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        variant="standard"
+        placeholder={isNewItem ? "Add new item" : undefined}
+        InputProps={{ disableUnderline: !isNewItem }}
+        sx={{ mr: 1, flexGrow: 1 }}
+        required
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            handleSubmit();
+          }
+        }}
+      />
+      <Box sx={{ display: 'flex', alignItems: 'center', mr: 1 }}>
+        <IconButton onClick={handleDecrement} size="small">
+          <RemoveIcon fontSize="small" />
+        </IconButton>
+        <Typography variant="body1" sx={{ mx: 1, minWidth: '20px', textAlign: 'center' }}>
+          {quantity}
+        </Typography>
+        <IconButton onClick={handleIncrement} size="small">
+          <AddIcon fontSize="small" />
+        </IconButton>
+      </Box>
+      {!isNewItem && onDelete && (
+        <IconButton onClick={() => onDelete && onDelete(item!.id!)} size="small">
+          <DeleteIcon fontSize="small" />
+        </IconButton>
+      )}
+      {isNewItem && (
+        <IconButton onClick={handleSubmit} color="primary" size="small">
+          <CheckIcon fontSize="small" />
+        </IconButton>
+      )}
+    </Box>
+  );
+};
+
+export default PantryForm;
+</file>
+
+<file path="components/PantryList.tsx">
+"use client";
+
+import React from 'react';
+import { PantryItem } from '@/types/pantry';
+import { User } from 'firebase/auth';
+import { Box, Typography } from '@mui/material';
+import PantryItemRow from './PantryItemRow'; // <-- We are importing the new row here!
+
+interface PantryListProps {
+  items: PantryItem[];
+  onDelete: (id: string) => void;
+  onUpdate: (item: PantryItem) => void;
+  user: User | null;
+}
+
+const PantryList: React.FC<PantryListProps> = ({ items, onDelete, onUpdate }) => {
+  if (items.length === 0) {
+    return (
+      <Typography sx={{ p: 4, textAlign: 'center', color: '#74796C' }}>
+        No items in your pantry yet. Add something above!
+      </Typography>
+    );
+  }
+
+  return (
+    <Box sx={{ width: '100%' }}>
+      {/* Table Header Row (From your HTML design) */}
+      <Box sx={{
+        display: 'flex',
+        px: 2, py: 2,
+        bgcolor: '#f5faff',
+        borderBottom: '1px solid #e0f0fd'
+      }}>
+        <Typography sx={{ flex: 2, fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: '#74796C', letterSpacing: 1 }}>
+          Product
+        </Typography>
+        <Typography sx={{ flex: 1.5, fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: '#74796C', letterSpacing: 1, pl: 2, display: { xs: 'none', sm: 'block' } }}>
+          Shelf Life
+        </Typography>
+        <Typography sx={{ flex: 1, fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: '#74796C', letterSpacing: 1, textAlign: 'center' }}>
+          Quantity
+        </Typography>
+        <Typography sx={{ flex: 0.2, fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: '#74796C', letterSpacing: 1 }}>
+          Actions
+        </Typography>
+      </Box>
+
+      {/* Table Body - Renders the new UI for every item */}
+      {items.map((item) => (
+        <PantryItemRow
+          key={item.id}
+          item={item}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
+      ))}
+    </Box>
+  );
+};
+
+export default PantryList;
+</file>
+
+<file path="components/RecipesPage.tsx">
+// pages/recipes/index.tsx
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { User } from 'firebase/auth';
+import { auth, collection, firestore, getDocs, query, where } from '../lib/firebaseConfig';
+import { PantryItem } from '@/types/pantry';
+import RecipeSuggestions from '../components/RecipeSuggestions';
+import { useRouter } from 'next/navigation';
+
+const RecipesPage: React.FC = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const [ingredients, setIngredients] = useState<string[]>([]);
+  const router = useRouter();
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        setUser(user);
+        fetchUserItems(user.uid);
+      } else {
+        router.push('/login');
+      }
+    });
+
+    return () => unsubscribe();
+  }, [router]);
+
+  const fetchUserItems = async (userId: string) => {
+    const pantryQuery = query(collection(firestore, 'pantry'), where('userId', '==', userId));
+    const querySnapshot = await getDocs(pantryQuery);
+    const fetchedItems = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PantryItem));
+    setIngredients(fetchedItems.map(item => item.name));
+  };
+
+  if (!user) return null;
+
+  return (
+    <div>
+      <h1>Recipe Suggestions</h1>
+      <RecipeSuggestions ingredients={ingredients} />
+    </div>
+  );
+};
+
+export default RecipesPage;
+</file>
+
+<file path="components/RecipeSuggestionButton.tsx">
+// components/RecipeSuggestionButton.tsx
+import React from 'react';
+import { Button } from '@mui/material';
+import { PantryItem } from '@/types/pantry';
+
+interface RecipeSuggestionButtonProps {
+    onClick: () => void;
+  }
+  
+const RecipeSuggestionButton: React.FC<RecipeSuggestionButtonProps> = ({ onClick }) => {
+
+  return (
+    <Button size="small" variant="contained" color="primary" onClick={onClick}>
+      Suggest Recipes
+    </Button>
+  );
+};
+
+export default RecipeSuggestionButton;
+</file>
+
+<file path="components/RecipeSuggestions.tsx">
+// components/RecipeSuggestions.tsx
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import { Button, Modal, Box, Typography, IconButton, List, ListItem, Card, CardContent, CardMedia, Chip, Container } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+
+
+interface RecipeSuggestionsProps {
+  ingredients: string[];
+}
+
+interface Ingredient {
+  id: number;
+  name: string;
+  amount: number;
+  unit: string;
+}
+
+interface Recipe {
+  id: number;
+  title: string;
+  image: string;
+  usedIngredientCount: number;
+  missedIngredientCount: number;
+  usedIngredients: Ingredient[];
+  missedIngredients: Ingredient[];
+}
+
+interface FullRecipe extends Recipe {
+  instructions: string;
+  extendedIngredients: {
+    original: string;
+  }[];
+}
+
+const RecipeSuggestions: React.FC<RecipeSuggestionsProps> = ({ ingredients }) => {
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [selectedRecipe, setSelectedRecipe] = useState<FullRecipe | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  // Replace with your actual Spoonacular API key
+  const API_KEY = process.env.NEXT_PUBLIC_SPOONACULAR_API_KEY;
+
+  useEffect(() => {
+    // Fetch recipe suggestions when ingredients change
+    const fetchRecipes = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await axios.get('https://api.spoonacular.com/recipes/findByIngredients', {
+          params: {
+            ingredients: ingredients.join(','),
+            number: 5, // Number of recipes to fetch
+            apiKey: API_KEY,
+          },
+        });
+        setRecipes(response.data);
+      } catch (error) {
+        console.error('Error fetching recipes:', error);
+        setError('Failed to fetch recipes. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (ingredients.length > 0) {
+      fetchRecipes();
+    }
+  }, [ingredients, API_KEY]);
+
+  // Handle click on a recipe to fetch full details
+  const handleRecipeClick = async (recipeId: number) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get(`https://api.spoonacular.com/recipes/${recipeId}/information`, {
+        params: {
+          apiKey: API_KEY,
+        },
+      });
+      setSelectedRecipe(response.data);
+      setModalOpen(true);
+    } catch (error) {
+      console.error('Error generating full recipe:', error);
+      setError('Failed to generate full recipe. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setSelectedRecipe(null);
+  };
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
+
+  return (
+    <Container maxWidth="md" sx={{ padding: 4 }}>
+      <Typography variant="h4" component="h2" gutterBottom>
+        Recipe Suggestions
+      </Typography>
+      {ingredients.length === 0 ? (
+        <Typography>No ingredients found in your pantry. Add some items to get recipe suggestions!</Typography>
+      ) : recipes.length === 0 ? (
+        <Typography>No recipes found for your ingredients. Try adding more items to your pantry!</Typography>
+      ) : (
+        <List sx={{ padding: 0 }}>
+          {recipes.map((recipe) => (
+            <ListItem key={recipe.id} disablePadding sx={{ mb: 4 }}>
+              <Card sx={{ width: '100%', display: 'flex', flexDirection: { xs: 'column', sm: 'row' } }}>
+                <CardMedia
+                  component="img"
+                  sx={{
+                    width: { xs: '100%', sm: 200 },
+                    height: { xs: 200, sm: 200 },
+                    borderRadius: '50%',
+                    padding: 2,
+                    objectFit: 'cover',
+                  }}
+                  image={recipe.image}
+                  alt={recipe.title}
+                />
+                <CardContent sx={{ flex: '1 0 auto' }}>
+                  <Typography variant="h5" component="h3" gutterBottom>
+                    {recipe.title}
+                  </Typography>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle1" gutterBottom>
+                      Used Ingredients ({recipe.usedIngredientCount}):
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {recipe.usedIngredients.map((ingredient) => (
+                        <Chip key={ingredient.id} label={ingredient.name} color="primary" size="small" />
+                      ))}
+                    </Box>
+                  </Box>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle1" gutterBottom>
+                      Missing Ingredients ({recipe.missedIngredientCount}):
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {recipe.missedIngredients.map((ingredient) => (
+                        <Chip key={ingredient.id} label={ingredient.name} color="secondary" size="small" />
+                      ))}
+                    </Box>
+                  </Box>
+                  <Button variant="contained" onClick={() => handleRecipeClick(recipe.id)}>
+                    View Full Recipe
+                  </Button>
+                </CardContent>
+              </Card>
+            </ListItem>
+          ))}
+        </List>
+      )}
+      <Modal
+        open={modalOpen}
+        onClose={handleCloseModal}
+        aria-labelledby="recipe-modal-title"
+        aria-describedby="recipe-modal-description"
+      >
+        <Box sx={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '90%',
+          maxWidth: 800,
+          bgcolor: 'background.paper',
+          boxShadow: 24,
+          p: 4,
+          maxHeight: '90vh',
+          overflow: 'auto',
+          borderRadius: 2,
+        }}>
+          <IconButton
+            aria-label="close"
+            onClick={handleCloseModal}
+            sx={{
+              position: 'absolute',
+              right: 8,
+              top: 8,
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+          {selectedRecipe && (
+            <>
+              <Typography id="recipe-modal-title" variant="h4" component="h2" gutterBottom>
+                {selectedRecipe.title}
+              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+                <CardMedia
+                  component="img"
+                  sx={{
+                    width: 300,
+                    height: 300,
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                  }}
+                  image={selectedRecipe.image}
+                  alt={selectedRecipe.title}
+                />
+              </Box>
+              <Typography variant="h5" gutterBottom>Ingredients:</Typography>
+              <List>
+                {selectedRecipe.extendedIngredients.map((ingredient, index) => (
+                  <ListItem key={index}>{ingredient.original}</ListItem>
+                ))}
+              </List>
+              <Typography variant="h5" gutterBottom>Instructions:</Typography>
+              <Typography variant="body1" component="div" dangerouslySetInnerHTML={{ __html: selectedRecipe.instructions }} />
+            </>
+          )}
+        </Box>
+      </Modal>
+    </Container>
+  );
+};
+
+export default RecipeSuggestions;
+</file>
+
+<file path="components/SearchBar.tsx">
+// components/SearchBar.tsx
+import React from 'react';
+import { Box } from '@mui/material';
+import TextField from '@mui/material/TextField';
+
+export interface SearchBarProps {
+  onSearch: (term: string) => void;
+}
+
+const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
+  return (
+    <Box sx={{ display: 'flex', justifyContent: 'left' }}>
+      <TextField
+        size="small"
+        variant="outlined"
+        label="Search Items"
+        onChange={(e) => onSearch(e.target.value.toLowerCase())}
+        InputProps={{
+          style: { borderRadius: 20 }
+        }}
+        sx={{ width: '100%', maxWidth: { xs: '90%', sm: '100%' } }}
+      />
+    </Box>
+  );
+};
+
+export default SearchBar;
+</file>
+
+<file path="lib/firebaseConfig.ts">
+import { initializeApp, getApps } from 'firebase/app';
+import {
+  getFirestore,
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  getDocs,
+  getDoc,
+  setDoc,
+  deleteDoc,
+  query,
+  where,
+  onSnapshot
+} from 'firebase/firestore';
+import {
+  getStorage,
+  ref,
+  uploadBytes,
+  getDownloadURL
+} from 'firebase/storage';
+import {
+  getAuth,
+  GoogleAuthProvider
+} from 'firebase/auth';
+
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+};
+
+// Initialize Firebase
+let app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+
+// Initialize Firestore, Storage, and Auth
+const firestore = getFirestore(app);
+const storage = getStorage(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+export {
+  firestore,
+  storage,
+  auth,
+  provider,
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  getDocs,
+  deleteDoc,
+  query,
+  where,
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  onSnapshot,
+  getDoc,
+  setDoc,
+};
+</file>
+
+<file path="next.config.mjs">
+/** @type {import('next').NextConfig} */
+const nextConfig = {};
+
+export default nextConfig;
+</file>
+
+<file path="public/next.svg">
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 394 80"><path fill="#000" d="M262 0h68.5v12.7h-27.2v66.6h-13.6V12.7H262V0ZM149 0v12.7H94v20.4h44.3v12.6H94v21h55v12.6H80.5V0h68.7zm34.3 0h-17.8l63.8 79.4h17.9l-32-39.7 32-39.6h-17.9l-23 28.6-23-28.6zm18.3 56.7-9-11-27.1 33.7h17.8l18.3-22.7z"/><path fill="#000" d="M81 79.3 17 0H0v79.3h13.6V17l50.2 62.3H81Zm252.6-.4c-1 0-1.8-.4-2.5-1s-1.1-1.6-1.1-2.6.3-1.8 1-2.5 1.6-1 2.6-1 1.8.3 2.5 1a3.4 3.4 0 0 1 .6 4.3 3.7 3.7 0 0 1-3 1.8zm23.2-33.5h6v23.3c0 2.1-.4 4-1.3 5.5a9.1 9.1 0 0 1-3.8 3.5c-1.6.8-3.5 1.3-5.7 1.3-2 0-3.7-.4-5.3-1s-2.8-1.8-3.7-3.2c-.9-1.3-1.4-3-1.4-5h6c.1.8.3 1.6.7 2.2s1 1.2 1.6 1.5c.7.4 1.5.5 2.4.5 1 0 1.8-.2 2.4-.6a4 4 0 0 0 1.6-1.8c.3-.8.5-1.8.5-3V45.5zm30.9 9.1a4.4 4.4 0 0 0-2-3.3 7.5 7.5 0 0 0-4.3-1.1c-1.3 0-2.4.2-3.3.5-.9.4-1.6 1-2 1.6a3.5 3.5 0 0 0-.3 4c.3.5.7.9 1.3 1.2l1.8 1 2 .5 3.2.8c1.3.3 2.5.7 3.7 1.2a13 13 0 0 1 3.2 1.8 8.1 8.1 0 0 1 3 6.5c0 2-.5 3.7-1.5 5.1a10 10 0 0 1-4.4 3.5c-1.8.8-4.1 1.2-6.8 1.2-2.6 0-4.9-.4-6.8-1.2-2-.8-3.4-2-4.5-3.5a10 10 0 0 1-1.7-5.6h6a5 5 0 0 0 3.5 4.6c1 .4 2.2.6 3.4.6 1.3 0 2.5-.2 3.5-.6 1-.4 1.8-1 2.4-1.7a4 4 0 0 0 .8-2.4c0-.9-.2-1.6-.7-2.2a11 11 0 0 0-2.1-1.4l-3.2-1-3.8-1c-2.8-.7-5-1.7-6.6-3.2a7.2 7.2 0 0 1-2.4-5.7 8 8 0 0 1 1.7-5 10 10 0 0 1 4.3-3.5c2-.8 4-1.2 6.4-1.2 2.3 0 4.4.4 6.2 1.2 1.8.8 3.2 2 4.3 3.4 1 1.4 1.5 3 1.5 5h-5.8z"/></svg>
+</file>
+
+<file path="public/vercel.svg">
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 283 64"><path fill="black" d="M141 16c-11 0-19 7-19 18s9 18 20 18c7 0 13-3 16-7l-7-5c-2 3-6 4-9 4-5 0-9-3-10-7h28v-3c0-11-8-18-19-18zm-9 15c1-4 4-7 9-7s8 3 9 7h-18zm117-15c-11 0-19 7-19 18s9 18 20 18c6 0 12-3 16-7l-8-5c-2 3-5 4-8 4-5 0-9-3-11-7h28l1-3c0-11-8-18-19-18zm-10 15c2-4 5-7 10-7s8 3 9 7h-19zm-39 3c0 6 4 10 10 10 4 0 7-2 9-5l8 5c-3 5-9 8-17 8-11 0-19-7-19-18s8-18 19-18c8 0 14 3 17 8l-8 5c-2-3-5-5-9-5-6 0-10 4-10 10zm83-29v46h-9V5h9zM37 0l37 64H0L37 0zm92 5-27 48L74 5h10l18 30 17-30h10zm59 12v10l-3-1c-6 0-10 4-10 10v15h-9V17h9v9c0-5 6-9 13-9z"/></svg>
+</file>
+
+<file path="README.md">
+This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+
+## Getting Started
+
+First, run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+
+This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+</file>
+
+<file path="tsconfig.json">
+{
+  "compilerOptions": {
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
+</file>
+
+<file path="types/pantry.d.ts">
+export interface PantryItem {
+  id?: string;
+  name: string;
+  quantity: number;
+  imageUrl?: string;
+  userId?: string;
+  expiryDate?: string;
+  dateAdded?: string; // Add this line
+}
+</file>
+
+<file path="app/login/page.tsx">
+"use client";
+
+import React from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { signInWithPopup } from "firebase/auth";
+import { auth, provider } from "../../lib/firebaseConfig";
+import { Box, Button, Typography, Paper, Link, IconButton } from "@mui/material";
+import { FcGoogle } from "react-icons/fc";
+import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
+
+const Login: React.FC = () => {
+  const router = useRouter();
+
+  const handleGoogleLogin = async () => {
+    try {
+      await signInWithPopup(auth, provider);
+      router.push("/pantry");
+    } catch (error) {
+      console.error("Error signing in with Google: ", error);
+    }
+  };
+
+  return (
+    <Box
+      sx={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        // Using your new blurry vegetable background
+        backgroundImage: "url('/images/login-bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        position: "relative",
+      }}
+    >
+      {/* Main Card */}
+      <Paper
+        elevation={0}
+        sx={{
+          padding: { xs: 4, md: 6 },
+          borderRadius: "24px",
+          textAlign: "center",
+          maxWidth: "400px",
+          width: "90%",
+          boxShadow: "0px 20px 60px rgba(0,0,0,0.05)",
+          backgroundColor: "#FFFFFF",
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 1.5
+        }}
+      >
+        {/* Logo Section */}
+        <Box sx={{ position: "relative", width: 60, height: 60, mb: 1 }}>
+          <Image
+            src="/images/logo.png"
+            alt="Pantry Logo"
+            fill
+            style={{ objectFit: "contain" }}
+            priority
+          />
+        </Box>
+
+        {/* Headlines */}
+        <Typography variant="h5" sx={{ fontWeight: 700, color: "#1A1A1A" }}>
+          Welcome Back
+        </Typography>
+
+        <Typography variant="body2" sx={{ color: "#636E72", mb: 2, lineHeight: 1.6 }}>
+          Manage your pantry and discover recipes.
+        </Typography>
+
+        {/* Google Button */}
+        <Button
+          onClick={handleGoogleLogin}
+          fullWidth
+          variant="contained"
+          sx={{
+            backgroundColor: "#4285F4", // Google Blue to match design
+            color: "#FFF",
+            textTransform: "none",
+            borderRadius: "30px", // Pill shape
+            padding: "10px 0",
+            fontSize: "0.95rem",
+            fontWeight: 500,
+            boxShadow: "none",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 1.5,
+            mb: 3, // Spacing before footer links
+            '&:hover': {
+              backgroundColor: "#357AE8",
+              boxShadow: "0px 4px 12px rgba(66, 133, 244, 0.2)",
+            }
+          }}
+        >
+          {/* Using a white circle behind the G icon if strictly following design, 
+              but standard G icon works well too */}
+          <Box sx={{
+            bgcolor: 'white',
+            borderRadius: '50%',
+            width: 20,
+            height: 20,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <FcGoogle size={16} />
+          </Box>
+          Sign in with Google
+        </Button>
+
+        {/* Footer Links */}
+        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+          <Link href="#" underline="hover" sx={{ color: "#B2BEC3", fontSize: "0.75rem" }}>
+            Privacy Policy
+          </Link>
+          <Typography variant="caption" sx={{ color: "#B2BEC3" }}>•</Typography>
+          <Link href="#" underline="hover" sx={{ color: "#B2BEC3", fontSize: "0.75rem" }}>
+            Terms of Service
+          </Link>
+        </Box>
+      </Paper>
+    </Box>
+  );
+};
+
+export default Login;
+</file>
+
+<file path="components/DetectItemForm.tsx">
+"use client";
+
+import React, { useState, useRef, useEffect } from 'react';
+import { firestore, storage } from '../lib/firebaseConfig';
+import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import Webcam from 'react-webcam';
+import * as tf from '@tensorflow/tfjs';
+import * as cocossd from '@tensorflow-models/coco-ssd';
+import { collection, addDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import Image from 'next/image';
+
+interface PantryItem {
+  id?: string;
+  name: string;
+  quantity: string;
+  imageUrl?: string;
+}
+
+const DetectItemForm: React.FC = () => {
+  const [name, setName] = useState('');
+  const [quantity, setQuantity] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [model, setModel] = useState<cocossd.ObjectDetection | null>(null);
+  const [isVideoReady, setIsVideoReady] = useState(false);
+  const webcamRef = useRef<Webcam>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const loadModel = async () => {
+      await tf.ready();
+      const loadedModel = await cocossd.load();
+      setModel(loadedModel);
+    };
+    loadModel();
+  }, []);
+
+  const onVideoLoad = () => {
+    setIsVideoReady(true);
+  };
+
+  const detect = async () => {
+    if (model && webcamRef.current && canvasRef.current && isVideoReady) {
+      const video = webcamRef.current.video;
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+
+      if (video && ctx) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        // Make sure the video dimensions are set
+        if (video.videoWidth === 0 || video.videoHeight === 0) {
+          requestAnimationFrame(detect);
+          return;
+        }
+
+        try {
+          const detectedObjects = await model.detect(video);
+
+          ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+          ctx.drawImage(video, 0, 0, ctx.canvas.width, ctx.canvas.height);
+
+          let foodDetected = false;
+          detectedObjects.forEach((prediction) => {
+            const [x, y, width, height] = prediction.bbox;
+            ctx.strokeStyle = '#00FFFF';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(x, y, width, height);
+            ctx.fillStyle = '#00FFFF';
+            ctx.font = '18px Arial';
+            ctx.fillText(`${prediction.class} (${Math.round(prediction.score * 100)}%)`, x, y > 10 ? y - 5 : 10);
+
+            if (prediction.class.toLowerCase().includes('food')) {
+              foodDetected = true;
+              setName(prediction.class);
+              setQuantity('1'); // Default quantity, adjust as needed
+            }
+          });
+
+          if (!foodDetected) {
+            ctx.fillStyle = 'red';
+            ctx.font = '24px Arial';
+            ctx.fillText('No food detected', 10, 30);
+          }
+        } catch (error) {
+          console.error('Detection error:', error);
+        }
+      }
+    }
+    requestAnimationFrame(detect);
+  };
+
+  useEffect(() => {
+    if (model && isVideoReady) {
+      detect();
+    }
+  }, [model, isVideoReady]);
+
+  const handleCapture = () => {
+    const imageSrc = webcamRef.current?.getScreenshot() || '';
+    setImageUrl(imageSrc);
+  };
+
+  const handleUpload = async () => {
+    const blob = await fetch(imageUrl).then((r) => r.blob());
+    const fileRef = ref(storage, `images/${name}`);
+    await uploadBytes(fileRef, blob);
+    const fileUrl = await getDownloadURL(fileRef);
+    return fileUrl;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (name && quantity) {
+      const fileUrl = await handleUpload();
+      await addDoc(collection(firestore, 'pantry'), { name, quantity, imageUrl: fileUrl });
+      alert('Item added to pantry!');
+    } else {
+      alert('Please ensure a food item is detected and quantity is set');
+    }
+  };
+
+  return (
+    <div>
+      <div style={{ position: 'relative', width: '640px', height: '480px' }}>
+        <Webcam
+          audio={false}
+          ref={webcamRef}
+          screenshotFormat="image/jpeg"
+          style={{ position: 'absolute', zIndex: 1, width: '100%', height: '100%' }}
+          onLoadedData={onVideoLoad}
+        />
+        <canvas
+          ref={canvasRef}
+          style={{ position: 'absolute', zIndex: 2, width: '100%', height: '100%' }}
+        />
+      </div>
+      <form onSubmit={handleSubmit}>
+        <Button onClick={handleCapture}>Capture Photo</Button>
+        {imageUrl && <Image src={imageUrl} alt="Captured" style={{ maxWidth: '100%' }} width={640} height={480} />}
+        <TextField
+          label="Item Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+          fullWidth
+          margin="normal"
+        />
+        <TextField
+          label="Quantity"
+          value={quantity}
+          onChange={(e) => setQuantity(e.target.value)}
+          required
+          fullWidth
+          margin="normal"
+        />
+        <Button type="submit" variant="contained" color="primary" fullWidth>
+          Add Item
+        </Button>
+      </form>
+    </div>
+  );
+};
+
+export default DetectItemForm;
+</file>
+
+<file path="app/globals.css">
+body {
+  margin: 0;
+  font-family: 'Roboto', sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-weight: 500;
+}
+
+button {
+  font-family: 'Roboto', sans-serif;
+}
+
+/* styles/globals.css */
+
+html, body {
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+  background-image: url('/public/images/organic-food-background-hand-drawn-concept-free-vector.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed; /* To keep the background fixed during scrolling */
+  font-family: 'Your Font', sans-serif; /* Optional: set a global font */
+}
+</file>
+
+<file path="app/layout.tsx">
+import type { Metadata } from "next";
+import localFont from 'next/font/local';
+import "./globals.css";
+import ThemeProviderWrapper from "./provider";
+
+// Load Google Sans locally
+// Load the variable font
+const googleSans = localFont({
+  src: "./fonts/GoogleSans-Variable.ttf", // Path to your file
+  variable: "--font-google-sans",       // This is the CSS variable name
+  display: "swap",                      // Ensures text shows up immediately
+});
+
+export const metadata: Metadata = {
+  title: "Smart Pantry Tracker",
+  description: "AI-powered inventory and recipe management",
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body className={googleSans.variable} style={{ margin: 0, padding: 0 }}>
+        <ThemeProviderWrapper>
+          {children}
+        </ThemeProviderWrapper>
+      </body>
+    </html>
+  );
+}
+</file>
+
+<file path="app/page.tsx">
+"use client";
+
+import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import {
+  Box,
+  Button,
+  Container,
+  Grid,
+  Typography,
+  Stack,
+  Card,
+  CardContent,
+  useTheme,
+  useMediaQuery
+} from '@mui/material';
+
+// Icons
+import CameraAltIcon from '@mui/icons-material/CameraAlt';
+import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
+import ListAltIcon from '@mui/icons-material/ListAlt';
+import LoginIcon from '@mui/icons-material/Login';
+
+// Auth
+import { auth } from '../lib/firebaseConfig';
+import { signOut, User } from 'firebase/auth';
+
+const LandingPage: React.FC = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const router = useRouter();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    setUser(null);
+  };
+
+  return (
+    <Box sx={{
+      minHeight: '100vh',
+      bgcolor: '#F9FAF9',
+      backgroundImage: 'url("/images/landing-wave-bg.jpg")', // Using the wavy background
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+
+      {/* 1. Navbar */}
+      <Container maxWidth="lg" sx={{ py: 3 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
+          {/* Logo Section */}
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Box sx={{ width: 40, height: 40, position: 'relative' }}>
+              <Image
+                src="/images/logo.png"
+                alt="Smart Pantry Logo"
+                fill
+                style={{ objectFit: 'contain' }}
+              />
+            </Box>
+            <Typography variant="h6" sx={{ fontWeight: 700, color: '#2D3436' }}>
+              Smart Pantry Tracker
+            </Typography>
+          </Stack>
+
+          {/* Auth Button */}
+          {user ? (
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={handleLogout}
+              sx={{ borderRadius: '8px', fontWeight: 600 }}
+            >
+              Sign Out
+            </Button>
+          ) : (
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<LoginIcon />}
+              onClick={() => router.push('/login')}
+              sx={{ borderRadius: '8px', px: 3, fontWeight: 600 }}
+            >
+              Login
+            </Button>
+          )}
+        </Stack>
+      </Container>
+
+      {/* 2. Hero Section */}
+      <Container maxWidth="lg" sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', py: 4 }}>
+        <Grid container spacing={4} alignItems="center">
+
+          {/* Left Column: Copy */}
+          <Grid item xs={12} md={6}>
+            <Box sx={{ textAlign: isMobile ? 'center' : 'left' }}>
+              <Typography variant="h2" component="h1" sx={{
+                fontWeight: 800,
+                color: '#1A1A1A',
+                mb: 2,
+                lineHeight: 1.2
+              }}>
+                Stop Wasting Food. <br />
+                <Box component="span" sx={{ color: theme.palette.primary.main }}>Track Smart.</Box>
+              </Typography>
+
+              <Typography variant="body1" sx={{
+                color: '#636E72',
+                fontSize: '1.1rem',
+                mb: 4,
+                maxWidth: '500px',
+                mx: isMobile ? 'auto' : 0
+              }}>
+                Experience seamless management for your food inventory. Organize, track, and optimize your pantry with AI-powered insights.
+              </Typography>
+
+              <Stack
+                direction={isMobile ? 'column' : 'row'}
+                spacing={2}
+                justifyContent={isMobile ? 'center' : 'flex-start'}
+              >
+                <Button
+                  variant="contained"
+                  size="large"
+                  onClick={() => router.push(user ? '/pantry' : '/login')}
+                  sx={{ py: 1.5, px: 4, borderRadius: '8px', fontSize: '1rem' }}
+                >
+                  Go to Pantry
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="large"
+                  onClick={() => router.push(user ? '/dashboard' : '/login')}
+                  sx={{
+                    py: 1.5, px: 4,
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    borderWidth: '2px',
+                    '&:hover': { borderWidth: '2px' }
+                  }}
+                >
+                  Go to Dashboard
+                </Button>
+              </Stack>
+            </Box>
+          </Grid>
+
+          {/* Right Column: Hero Image */}
+          <Grid item xs={12} md={6}>
+            <Box sx={{
+              position: 'relative',
+              width: '100%',
+              height: isMobile ? '300px' : '500px',
+            }}>
+              <Image
+                src="/images/hero-food.png"
+                alt="Healthy food illustration"
+                fill
+                style={{ objectFit: 'contain' }}
+                priority
+              />
+            </Box>
+          </Grid>
+        </Grid>
+      </Container>
+
+      {/* 3. Features Section */}
+      <Container maxWidth="lg" sx={{ pb: 8 }}>
+        <Grid container spacing={3}>
+          <FeatureCard
+            icon={<CameraAltIcon fontSize="large" sx={{ color: theme.palette.primary.main }} />}
+            title="AI Object Detection"
+            description="Automatically identify and categorize items as you add them to your pantry using our smart camera integration."
+          />
+          <FeatureCard
+            icon={<RestaurantMenuIcon fontSize="large" sx={{ color: theme.palette.primary.main }} />}
+            title="Recipe Suggestions"
+            description="Discover delicious new recipes based on the ingredients you already have in stock to reduce decision fatigue."
+          />
+          <FeatureCard
+            icon={<ListAltIcon fontSize="large" sx={{ color: theme.palette.primary.main }} />}
+            title="Inventory Tracking"
+            description="Keep a real-time inventory of your food, monitor expiry dates, and drastically reduce household food waste."
+          />
+        </Grid>
+      </Container>
+    </Box>
+  );
+};
+
+// Sub-component for clean code
+const FeatureCard = ({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) => (
+  <Grid item xs={12} md={4}>
+    <Card sx={{
+      height: '100%',
+      borderRadius: '16px',
+      boxShadow: '0px 10px 40px rgba(0,0,0,0.05)',
+      border: '1px solid rgba(0,0,0,0.02)'
+    }}>
+      <CardContent sx={{ p: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Box sx={{
+          bgcolor: '#F0F7F2',
+          width: 'fit-content',
+          p: 1.5,
+          borderRadius: '12px',
+          mb: 1
+        }}>
+          {icon}
+        </Box>
+        <Typography variant="h6" fontWeight="bold">
+          {title}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+          {description}
+        </Typography>
+      </CardContent>
+    </Card>
+  </Grid>
+);
+
+export default LandingPage;
+</file>
+
+<file path="package.json">
+{
+  "name": "pantry_app-ts",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.13.0",
+    "@emotion/styled": "^11.13.0",
+    "@mui/icons-material": "^5.16.6",
+    "@mui/material": "^5.16.6",
+    "@tensorflow-models/coco-ssd": "^2.2.3",
+    "@tensorflow-models/mobilenet": "^2.1.1",
+    "@tensorflow/tfjs": "^4.20.0",
+    "axios": "^1.7.3",
+    "firebase": "^10.12.5",
+    "next": "14.2.5",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-icons": "^5.3.0",
+    "react-webcam": "^7.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.5",
+    "typescript": "^5"
+  }
+}
+</file>
+
+</files>

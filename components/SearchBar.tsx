@@ -16,13 +16,12 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
         label="Search Items"
         onChange={(e) => onSearch(e.target.value.toLowerCase())}
         InputProps={{
-          style: { borderRadius: 10 }
+          style: { borderRadius: 20 }
         }}
-        sx={{ width: '100%', maxWidth: '300px' }}
+        sx={{ width: '100%', maxWidth: { xs: '90%', sm: '100%' } }}
       />
     </Box>
   );
 };
 
 export default SearchBar;
-  

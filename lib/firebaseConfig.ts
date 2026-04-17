@@ -1,25 +1,27 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { 
-  getFirestore, 
-  collection, 
-  doc, 
-  addDoc, 
-  updateDoc, 
-  getDocs, 
-  deleteDoc, 
-  query, 
+import {
+  getFirestore,
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  getDocs,
+  getDoc,
+  setDoc,
+  deleteDoc,
+  query,
   where,
-  onSnapshot 
+  onSnapshot
 } from 'firebase/firestore';
-import { 
-  getStorage, 
-  ref, 
-  uploadBytes, 
-  getDownloadURL 
+import {
+  getStorage,
+  ref,
+  uploadBytes,
+  getDownloadURL
 } from 'firebase/storage';
-import { 
-  getAuth, 
-  GoogleAuthProvider 
+import {
+  getAuth,
+  GoogleAuthProvider
 } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -41,21 +43,23 @@ const storage = getStorage(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-export { 
-  firestore, 
-  storage, 
-  auth, 
-  provider, 
-  collection, 
-  doc, 
-  addDoc, 
-  updateDoc, 
-  getDocs, 
-  deleteDoc, 
-  query, 
-  where, 
-  ref, 
-  uploadBytes, 
+export {
+  firestore,
+  storage,
+  auth,
+  provider,
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  getDocs,
+  deleteDoc,
+  query,
+  where,
+  ref,
+  uploadBytes,
   getDownloadURL,
-  onSnapshot
+  onSnapshot,
+  getDoc,
+  setDoc,
 };

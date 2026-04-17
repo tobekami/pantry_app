@@ -1,28 +1,25 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import localFont from 'next/font/local';
 import "./globals.css";
 import ThemeProviderWrapper from "./provider";
 
-const inter = Inter({ subsets: ["latin"] });
+// Load Google Sans locally
+// Load the variable font
+const googleSans = localFont({
+  src: "./fonts/GoogleSans-Variable.ttf", // Path to your file
+  variable: "--font-google-sans",       // This is the CSS variable name
+  display: "swap",                      // Ensures text shows up immediately
+});
 
 export const metadata: Metadata = {
-  title: "Tobechukwu Emelife's Pantry Management App",
-  description: "An AI integrated app created for seamless pantry management",
+  title: "Smart Pantry Tracker",
+  description: "AI-powered inventory and recipe management",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body style={{
-            backgroundImage: 'url("/images/flowers-5209386.jpg")', // Replace with your image path
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-            backgroundAttachment: 'fixed',
-            minHeight: '100vh',
-            margin: 0,
-            padding: 0,
-        }}>
+      <body className={googleSans.variable} style={{ margin: 0, padding: 0 }}>
         <ThemeProviderWrapper>
           {children}
         </ThemeProviderWrapper>

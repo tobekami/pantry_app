@@ -47,7 +47,7 @@ const PantryPage: React.FC = () => {
     const updatedItems = newItem.id
       ? items.map(item => item.id === newItem.id ? newItem : item)
       : [...items, newItem];
-    
+
     setItems(updatedItems);
 
     if (!user) {
@@ -58,7 +58,7 @@ const PantryPage: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (user) {
       await deleteDoc(doc(firestore, 'pantry', id));
-    } 
+    }
     const updatedItems = items.filter(item => item.id !== id);
     setItems(updatedItems);
     if (!user) {
