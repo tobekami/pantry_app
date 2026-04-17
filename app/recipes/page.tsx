@@ -8,7 +8,7 @@ import { PantryItem } from '@/types/pantry';
 import RecipeSuggestions from '../../components/RecipeSuggestions';
 import SavedRecipes from '../../components/SavedRecipes';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Box, Tabs, Tab, Container, Typography, IconButton } from '@mui/material';
+import { Box, Tabs, Tab, Container, Typography, IconButton, CircularProgress } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const RecipesContent: React.FC = () => {
@@ -82,7 +82,7 @@ const RecipesContent: React.FC = () => {
       {tabIndex === 0 && (
         <RecipeSuggestions ingredients={ingredients} preferences={preferences} />
       )}
-      
+
       {tabIndex === 1 && (
         <SavedRecipes />
       )}
@@ -92,7 +92,11 @@ const RecipesContent: React.FC = () => {
 
 const RecipesPage: React.FC = () => {
   return (
-    <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>Loading...</Box>}>
+    <Suspense fallback={
+      <Box sx={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center' }}>
+        <CircularProgress size={60} thickness={4} sx={{ color: '#486730' }} />
+      </Box>
+    }>
       <RecipesContent />
     </Suspense>
   );

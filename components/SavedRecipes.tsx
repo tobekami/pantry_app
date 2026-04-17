@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, List, ListItem, Card, CardContent, CardMedia, Button, Container, Modal, IconButton, Chip } from '@mui/material';
+import { Box, Typography, List, ListItem, Card, CardContent, CardMedia, Button, Container, Modal, IconButton, Chip, CircularProgress } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
@@ -60,7 +60,11 @@ const SavedRecipes: React.FC = () => {
     }
   };
 
-  if (loading) return <Typography align="center" mt={4}>Loading saved recipes...</Typography>;
+  if (loading) return (
+    <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+      <CircularProgress size={60} thickness={4} sx={{ color: '#486730' }} />
+    </Box>
+  );
 
   return (
     <Container maxWidth="md" sx={{ padding: 4 }}>

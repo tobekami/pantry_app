@@ -232,7 +232,11 @@ const RecipeSuggestions: React.FC<RecipeSuggestionsProps> = ({ ingredients, pref
     'Avoid': { bg: '#ffebee', text: '#c62828', icon: <ErrorOutlineIcon color="error" /> },
   };
 
-  if (isLoading && !modalOpen) return <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>;
+  if (isLoading && !modalOpen) return (
+    <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+      <CircularProgress size={60} thickness={4} sx={{ color: '#486730' }} />
+    </Box>
+  );
   if (error) return <div>Error: {error}</div>;
 
   return (
@@ -309,7 +313,7 @@ const RecipeSuggestions: React.FC<RecipeSuggestionsProps> = ({ ingredients, pref
               <Box sx={{ mb: 3 }}>
                 {isAnalyzing ? (
                   <Box sx={{ p: 3, bgcolor: '#f5faff', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <CircularProgress size={24} />
+                    <CircularProgress size={24} thickness={4} sx={{ color: '#486730' }} />
                     <Typography>AI Nutritionist is reviewing this recipe...</Typography>
                   </Box>
                 ) : aiAnalysis ? (
