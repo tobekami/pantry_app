@@ -246,7 +246,7 @@ const PantryPage: React.FC = () => {
               Pantry Dashboard
             </Typography>
             <Typography variant="body2" fontWeight={500} sx={{ color: '#5f5e59' }}>
-              Curating your kitchen's natural ecosystem.
+              Curating your kitchen&apos;s natural ecosystem.
             </Typography>
           </Box>
 
