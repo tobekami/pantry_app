@@ -1,7 +1,7 @@
 // pages/recipes/index.tsx
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { User } from 'firebase/auth';
 import { auth, collection, firestore, getDocs, query, where, doc, getDoc } from '../../lib/firebaseConfig';
 import { PantryItem } from '@/types/pantry';
@@ -11,7 +11,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Box, Tabs, Tab, Container, Typography, IconButton } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
-const RecipesPage: React.FC = () => {
+const RecipesContent: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [ingredients, setIngredients] = useState<string[]>([]);
   const [preferences, setPreferences] = useState({ diet: '', allergies: [] as string[] });
@@ -87,6 +87,14 @@ const RecipesPage: React.FC = () => {
         <SavedRecipes />
       )}
     </Box>
+  );
+};
+
+const RecipesPage: React.FC = () => {
+  return (
+    <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>Loading...</Box>}>
+      <RecipesContent />
+    </Suspense>
   );
 };
 
