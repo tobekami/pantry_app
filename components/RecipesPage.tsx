@@ -38,7 +38,7 @@ const RecipesPage: React.FC = () => {
   return (
     <div>
       <h1>Recipe Suggestions</h1>
-      <RecipeSuggestions ingredients={ingredients} />
+      <RecipeSuggestions ingredients={ingredients} preferences={{ diet: '', allergies: [] }} />
     </div>
   );
 };
